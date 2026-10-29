@@ -21,14 +21,39 @@
   button.zero{grid-column:span 2;aspect-ratio:auto;border-radius:999px;text-align:left;padding-left:30px}
   button.dead{background:var(--dead);color:#444;cursor:not-allowed}
   .note{margin-top:14px;text-align:center;font-size:13px;color:#8e8e93;min-height:2.6em}
+  .tabs{display:flex;gap:8px;justify-content:center;margin-bottom:12px}
+  .tabs button{aspect-ratio:auto;border-radius:999px;font-size:14px;padding:8px 18px;background:var(--key)}
+  .tabs button.sel{background:var(--op)}
+  #pat{display:none;font-size:14px}
+  #pat h2{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#8e8e93;margin:14px 0 6px;font-weight:600}
+  table{border-collapse:collapse;width:100%;text-align:center}
+  td,th{padding:5px 0;border-radius:6px}
+  th{color:var(--op)}
+  td.hl{background:var(--op);color:#000}
+  .cnt{display:grid;grid-template-columns:repeat(8,1fr);gap:4px;text-align:center}
+  .cnt div{padding:6px 0;border-radius:6px;background:var(--key)}
+  .cnt div.hl{background:var(--op);color:#000}
+  select{background:var(--key);color:#fff;border:0;border-radius:8px;padding:4px 8px;font-size:14px}
+  #pat p{color:#aaa;margin:6px 0;line-height:1.4}
 </style>
 </head>
 <body>
 <div class="calc">
+  <div class="tabs"><button class="sel" id="t1">Calculator</button><button id="t2">Patterns</button></div>
+  <div id="cv">
   <h1>Counts to 8 (where 8 is 10)</h1>
   <div class="screen" id="out">0</div>
   <div class="grid" id="pad"></div>
   <div class="note" id="note">4 + 4 = 10</div>
+  </div>
+  <div id="pat">
+    <h2>Times table (tap a row/column number)</h2>
+    <table id="tt"></table>
+    <p>Row 7 steps back: 7, 16, 25, 34, 43, 52, 61, 70. The digits of every multiple of 7 add to a multiple of 7: the same trick 9 has in base 10.</p>
+    <h2>Counting <select id="sel"></select> multiples</h2>
+    <div class="cnt" id="cnt"></div>
+    <p>Evens always end in 0, 2, 4, 6. Every 10 (eight) numbers the pattern resets, like 10 does in decimal.</p>
+  </div>
 </div>
 <script>
 // Base-8 calculator: digits are 0-7, "10" is what you call eight. Math is done on real numbers, shown in octal.
@@ -95,6 +120,22 @@ document.addEventListener('keydown',e=>{
   press(k,b);
 });
 show();
+
+// Patterns view
+const o=n=>n.toString(8);
+const tt=document.getElementById('tt');
+let hdr='<tr><th></th>'+[1,2,3,4,5,6,7].map(c=>`<th data-c="${c}">${c}</th>`).join('')+'</tr>';
+for(let r=1;r<8;r++)hdr+=`<tr><th data-r="${r}">${r}</th>`+[1,2,3,4,5,6,7].map(c=>`<td data-r="${r}" data-c="${c}">${o(r*c)}</td>`).join('')+'</tr>';
+tt.innerHTML=hdr;
+tt.onclick=e=>{const d=e.target.dataset;tt.querySelectorAll('.hl').forEach(x=>x.classList.remove('hl'));
+  tt.querySelectorAll('td').forEach(td=>{if((d.r&&td.dataset.r===d.r&&!d.c)||(d.c&&td.dataset.c===d.c&&!d.r))td.classList.add('hl')})};
+const sel=document.getElementById('sel'),cnt=document.getElementById('cnt');
+for(let k=2;k<8;k++)sel.add(new Option(k,k));
+const draw=()=>{const k=+sel.value;cnt.innerHTML='';for(let n=0;n<64;n++){const d=document.createElement('div');d.textContent=o(n);if(n&&n%k===0)d.className='hl';cnt.appendChild(d)}};
+sel.onchange=draw;draw();
+const cv=document.getElementById('cv'),pat=document.getElementById('pat'),t1=document.getElementById('t1'),t2=document.getElementById('t2');
+t1.onclick=()=>{cv.style.display='';pat.style.display='none';t1.className='sel';t2.className=''};
+t2.onclick=()=>{cv.style.display='none';pat.style.display='block';t2.className='sel';t1.className=''};
 </script>
 </body>
 </html>
