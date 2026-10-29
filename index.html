@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>The Calculator That Only Counts to 8</title>
+<style>
+  :root{--bg:#0b0b0d;--key:#2a2a2e;--key2:#3a3a40;--op:#ff9f0a;--dead:#17171a}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;background:var(--bg);color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+  body{display:flex;align-items:center;justify-content:center}
+  .calc{width:min(92vw,380px);padding:16px}
+  h1{font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#8e8e93;text-align:center;margin:0 0 10px}
+  .screen{height:110px;display:flex;align-items:flex-end;justify-content:flex-end;font-size:64px;font-weight:300;padding:0 8px 8px;overflow:hidden;white-space:nowrap}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  button{aspect-ratio:1;border:0;border-radius:50%;background:var(--key);color:#fff;font-size:28px;cursor:pointer;transition:filter .1s,transform .05s}
+  button:active{filter:brightness(1.5);transform:scale(.96)}
+  button.fn{background:var(--key2)}
+  button.op{background:var(--op)}
+  button.op.on{background:#fff;color:var(--op)}
+  button.zero{grid-column:span 2;aspect-ratio:auto;border-radius:999px;text-align:left;padding-left:30px}
+  button.dead{background:var(--dead);color:#444;cursor:not-allowed}
+  .note{margin-top:14px;text-align:center;font-size:13px;color:#8e8e93;min-height:2.6em}
+</style>
+</head>
+<body>
+<div class="calc">
+  <h1>Counts to 8 (where 8 is 10)</h1>
+  <div class="screen" id="out">0</div>
+  <div class="grid" id="pad"></div>
+  <div class="note" id="note">4 + 4 = 10</div>
+</div>
+<script>
+// Base-8 calculator: digits are 0-7, "10" is what you call eight. Math is done on real numbers, shown in octal.
+const rows=[
+ [['AC','fn'],['±','fn'],['9','dead'],['÷','op']],
+ [['7'],['6'],['5'],['×','op']],
+ [['4'],['3'],['2'],['−','op']],
+ [['1'],['0'],['8','dead'],['+','op']],
+ [['0','zero'],['.'],['=','op']]
+];
+const out=document.getElementById('out'),pad=document.getElementById('pad'),note=document.getElementById('note');
+let cur='0',acc=null,op=null,fresh=true,opBtn=null;
+
+const toOct=n=>{
+  if(!isFinite(n))return 'Err';
+  let neg=n<0;n=Math.abs(n);
+  let i=Math.floor(n),f=n-i,s=i.toString(8);
+  if(f>1e-9){s+='.';for(let k=0;k<8&&f>1e-9;k++){f*=8;const d=Math.floor(f+1e-9);s+=d;f-=d}}
+  return (neg?'-':'')+s;
+};
+const parse=s=>{
+  let neg=s[0]==='-';if(neg)s=s.slice(1);
+  const [i,f='']=s.split('.');
+  let v=parseInt(i||'0',8);
+  for(let k=0;k<f.length;k++)v+=parseInt(f[k],8)/Math.pow(8,k+1);
+  return neg?-v:v;
+};
+const calc=(a,b,o)=>o==='+'?a+b:o==='−'?a-b:o==='×'?a*b:o==='÷'?a/b:b;
+const show=()=>{out.textContent=cur;out.style.fontSize=cur.length>9?'36px':cur.length>6?'48px':'64px'};
+const clearOp=()=>{if(opBtn)opBtn.classList.remove('on');opBtn=null};
+
+function press(k,btn){
+  if(/^[0-7]$/.test(k)){
+    if(fresh){cur=k;fresh=false}else cur=cur==='0'?k:cur+k;
+    clearOp();
+  }else if(k==='8'||k==='9'){
+    note.textContent=k==='8'?"There is no 8. Eight is spelled 10.":"There is no 9 here. Nine is spelled 11.";
+    return show();
+  }else if(k==='.'){
+    if(fresh){cur='0.';fresh=false}else if(!cur.includes('.'))cur+='.';
+  }else if(k==='AC'){cur='0';acc=null;op=null;fresh=true;clearOp();note.textContent='4 + 4 = 10'}
+  else if(k==='±'){cur=cur[0]==='-'?cur.slice(1):(cur==='0'?cur:'-'+cur)}
+  else if(k==='='){
+    if(op!==null){cur=toOct(calc(acc,parse(cur),op));acc=null;op=null;fresh=true;clearOp()}
+  }else{
+    if(op!==null&&!fresh){acc=calc(acc,parse(cur),op);cur=toOct(acc)}else acc=parse(cur);
+    op=k;fresh=true;clearOp();opBtn=btn;btn.classList.add('on');
+  }
+  if(cur==='10')note.textContent='Eight. Obviously.';
+  show();
+}
+
+rows.forEach(r=>r.forEach(([k,cls])=>{
+  const b=document.createElement('button');
+  b.textContent=k;b.className=cls||'';
+  b.onclick=()=>press(k,b);
+  pad.appendChild(b);
+}));
+document.addEventListener('keydown',e=>{
+  const m={'*':'×','/':'÷','-':'−','+':'+','Enter':'=','=':'=','Escape':'AC','.':'.'};
+  const k=/^[0-9]$/.test(e.key)?e.key:m[e.key];
+  if(!k)return;e.preventDefault();
+  const b=[...pad.children].find(x=>x.textContent===k);
+  press(k,b);
+});
+show();
+</script>
+</body>
+</html>
